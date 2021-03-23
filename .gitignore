@@ -1,0 +1,13 @@
+# Jetbrains
+.idea
+
+# Python
+.ipynb_checkpoints
+
+# Data
+*.csv
+*.json
+*.txt
+
+# Files unrelated to NLP problem solving
+misc/*
