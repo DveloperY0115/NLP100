@@ -116,9 +116,21 @@ def process_data(save=False, out_dir='./data'):
     test_encoded = encode_words(test_tokenized, word_to_index)
 
     # add padding
-    train_encoded = add_padding(train_encoded, word_to_index)
-    valid_encoded = add_padding(valid_encoded, word_to_index)
-    test_encoded = add_padding(test_encoded, word_to_index)
+    max_lens = [max(len(l) for l in train_encoded), max(len(l) for l in valid_encoded), max(len(l) for l in test_encoded)]
+
+    max_len = max(max_lens)
+
+    for line in train_encoded:
+        if len(line) < max_len:
+            line += [word_to_index['pad']] * (max_len - len(line))
+
+    for line in valid_encoded:
+        if len(line) < max_len:
+            line += [word_to_index['pad']] * (max_len - len(line))
+
+    for line in test_encoded:
+        if len(line) < max_len:
+            line += [word_to_index['pad']] * (max_len - len(line))
 
     if save:
         pass
