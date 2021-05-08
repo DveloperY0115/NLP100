@@ -37,7 +37,7 @@ def tokenize_and_label(df, stop_words=None, one_hot_labels=None):
         one_hot_labels = {'b': 0, 't': 1, 'm': 2, 'e': 3}
 
     tokenized = []
-    label = []
+    labels = []
 
     for sentence in df['title']:
         temp = word_tokenize(sentence)
@@ -45,9 +45,11 @@ def tokenize_and_label(df, stop_words=None, one_hot_labels=None):
         tokenized.append(temp)
 
     for category in df['category']:
-        label.append(one_hot_labels[category])
+        label = [0] * len(one_hot_labels.keys())
+        label[one_hot_labels[category]] = 1
+        labels.append(label)
 
-    return tokenized, label
+    return tokenized, labels
 
 
 def encode_words(tokenized, word_to_index):
