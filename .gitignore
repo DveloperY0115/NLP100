@@ -3,6 +3,7 @@
 
 # Python
 .ipynb_checkpoints
+*.pyc
 
 # Data
 *.csv
@@ -11,3 +12,6 @@
 
 # Files unrelated to NLP problem solving
 misc/*
+
+# outputs
+outputs
