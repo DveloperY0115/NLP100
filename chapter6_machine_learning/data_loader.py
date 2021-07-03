@@ -9,6 +9,11 @@ from nltk import FreqDist
 import torch
 from torch.utils.data import Dataset
 
+# TODO: Replace preprocessing with torchtext
+from torchtext.data.utils import get_tokenizer
+from collections import Counter
+from torchtext.vocab import Vocab
+
 
 class NewsAggregatorDataset(Dataset):
 
@@ -39,10 +44,14 @@ def tokenize_and_label(df, stop_words=None, one_hot_labels=None):
     tokenized = []
     labels = []
 
+    """
+    tokenizer = get_tokenizer('basic_english')
+    counter = Counter()
+    
     for sentence in df['title']:
-        temp = word_tokenize(sentence)
-        temp = [word.lower() for word in temp if not word in stop_words]
-        tokenized.append(temp)
+        counter.update(tokenizer(sentence))
+    vocab = Vocab(counter, min_freq=1)
+    """
 
     for category in df['category']:
         label = [0] * len(one_hot_labels.keys())
