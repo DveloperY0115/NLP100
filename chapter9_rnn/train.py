@@ -88,6 +88,9 @@ def main():
 
         train_iter = iter(train_loader)
 
+        train_loss = 0
+        train_idx = 0
+
         while True:
             # iterate over the dataset
             try:
@@ -116,14 +119,37 @@ def main():
             # update scheduler
             scheduler.step()
 
+            # accumulate loss & record iteration
+            train_loss += loss.item()
+            train_idx += 1
+
+        # average train loss
+        train_loss /= train_idx
+
+        print("------------------------------------------")
+        print("[!] Epoch {} train loss: {}".format(epoch, train_loss))
+        print("------------------------------------------")
+
         with torch.no_grad():
 
             test_iter = iter(test_loader)
             test_batch = next(test_iter)
 
-            """
-            evaluate, record
-            """
+            title_test = test_batch.title.to(device)
+            publisher_test = test_batch.publisher.to(device)
+            category_test = test_batch.category.to(device)
+
+            # one-hot encoding for categorical data
+            publisher_test = F.one_hot(publisher_test, 6)
+            category_test = F.one_hot(category_test, 5)
+
+            pred_test = model(title_test, publisher_test)
+
+            test_loss = nn.CrossEntropyLoss()(pred_test, torch.argmax(category_test, dim=1))
+
+            print("------------------------------------------")
+            print("[!] Epoch {} test loss: {}".format(epoch, test_loss.item()))
+            print("------------------------------------------")
 
 
 if __name__ == "__main__":
