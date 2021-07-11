@@ -27,7 +27,7 @@ class SimpleRNN(nn.Module):
         self.recurrent = nn.RNN(embed_dim, hidden_dim, num_layers=self.num_layers, batch_first=True)
 
         # fully connected layers for texts
-        self.fc_1 = nn.Linear(32, 16)
+        self.fc_1 = nn.Linear(hidden_dim, 16)
         self.fc_2 = nn.Linear(16, num_classes)
 
         self.fc_3 = nn.Linear(kwargs["num_publisher"], 32)
@@ -84,7 +84,7 @@ class SimpleLSTM(nn.Module):
         )
 
         # fully connected layers for texts
-        self.fc_1 = nn.Linear(32, 16)
+        self.fc_1 = nn.Linear(hidden_dim, 16)
         self.fc_2 = nn.Linear(16, num_classes)
 
         self.fc_3 = nn.Linear(kwargs["num_publisher"], 32)
@@ -142,7 +142,7 @@ class SimpleGRU(nn.Module):
         self.recurrent = nn.GRU(embed_dim, hidden_dim, num_layers=self.num_layers, batch_first=True)
 
         # fully connected layers for texts
-        self.fc_1 = nn.Linear(32, 16)
+        self.fc_1 = nn.Linear(hidden_dim, 16)
         self.fc_2 = nn.Linear(16, num_classes)
 
         self.fc_3 = nn.Linear(kwargs["num_publisher"], 32)
@@ -178,5 +178,4 @@ class SimpleGRU(nn.Module):
     def _init_state(self, batch_size=1):
         weight = next(self.parameters()).data
         return weight.new(self.num_layers, batch_size, self.hidden_dim).zero_()
-            
 
