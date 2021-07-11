@@ -21,7 +21,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument(
     "--model_type",
     type=str,
-    default="lstm",
+    default="gru",
     help="Type of model to use. Can be one of 'rnn', 'lstm', 'gru'.",
 )
 parser.add_argument("--num_layer", type=int, default=3, help="Number of recurrent layers")
@@ -61,9 +61,9 @@ def main():
     )
 
     # build vocabulary
-    fields.TITLE.build_vocab(train_data, min_freq=5, max_size=10000)
-    fields.TITLE.build_vocab(valid_data, min_freq=5, max_size=10000)
-    fields.TITLE.build_vocab(test_data, min_freq=5, max_size=10000)
+    fields.TITLE.build_vocab(train_data, min_freq=3, max_size=20000)
+    fields.TITLE.build_vocab(valid_data, min_freq=3, max_size=20000)
+    fields.TITLE.build_vocab(test_data, min_freq=3, max_size=20000)
     fields.PUBLISHER.build_vocab(train_data, valid_data, test_data)
     fields.CATEGORY.build_vocab(train_data, valid_data, test_data)
 
@@ -75,12 +75,13 @@ def main():
     test_loader = BucketIterator(dataset=test_data, batch_size=args.batch_size, device=device)
 
     # create model
+    # TODO: Investigate dataset and eliminate samples with missing values
     if args.model_type == "rnn":
-        model = SimpleRNN(args.num_layer, args.hidden_dim, vocab_size, args.embed_dim, 5, 0.2, num_publisher=6).to(device)
+        model = SimpleRNN(args.num_layer, args.hidden_dim, vocab_size, args.embed_dim, 5, 0.7, num_publisher=6).to(device)
     elif args.model_type == "lstm":
-        model = SimpleLSTM(args.num_layer, args.hidden_dim, vocab_size, args.embed_dim, 5, 0.2, num_publisher=6).to(device)
+        model = SimpleLSTM(args.num_layer, args.hidden_dim, vocab_size, args.embed_dim, 5, 0.7, num_publisher=6).to(device)
     elif args.model_type == "gru":
-        model = SimpleGRU(args.num_layer, args.hidden_dim, vocab_size, args.embed_dim, 5, 0.2, num_publisher=6).to(device)
+        model = SimpleGRU(args.num_layer, args.hidden_dim, vocab_size, args.embed_dim, 5, 0.7, num_publisher=6).to(device)
     else:
         print("[!] Invalid configuration. Please choose one of 'rnn', 'lstm', 'gru'.")
         return -1
@@ -97,7 +98,7 @@ def main():
             test_loss, test_accuracy = test_one_epoch(model, device, test_loader, epoch)
 
         # save model & checkpoint
-        if (epoch + 1) % args.save_interval == 0:
+        if (epoch+1) % args.save_interval == 0:
             save_checkpoint(epoch, loss, model, optimizer, scheduler)
 
 
@@ -179,12 +180,16 @@ def test_one_epoch(model, device, test_loader, epoch):
 
 
 def save_checkpoint(epoch, loss, model, optimizer, scheduler):
-    save_root = "{}/".format(args.model_type)
+
+    if not os.path.exists("out"):
+        os.mkdir("out/")
+
+    save_root = "out/{}/".format(args.model_type)
 
     if not os.path.exists(save_root):
         os.mkdir(save_root)
 
-    save_path = os.path.join(save_root, "checkpoint-epoch-{}.pt".format(epoch + 1))
+    save_path = os.path.join(save_root, "checkpoint-epoch-{}.pt".format(epoch+1))
 
     torch.save(
         {

@@ -27,12 +27,13 @@ class SimpleRNN(nn.Module):
         self.recurrent = nn.RNN(embed_dim, hidden_dim, num_layers=self.num_layers, batch_first=True)
 
         # fully connected layers for texts
-        self.fc_1 = nn.Linear(hidden_dim, 16)
-        self.fc_2 = nn.Linear(16, num_classes)
+        self.fc_1 = nn.Linear(hidden_dim, 32)
+        self.fc_2 = nn.Linear(32, 16)
+        self.fc_3 = nn.Linear(16, num_classes)
 
-        self.fc_3 = nn.Linear(kwargs["num_publisher"], 32)
-        self.fc_4 = nn.Linear(32, 16)
-        self.fc_5 = nn.Linear(16, num_classes)
+        self.fc_4 = nn.Linear(kwargs["num_publisher"], 32)
+        self.fc_5 = nn.Linear(32, 16)
+        self.fc_6 = nn.Linear(16, num_classes)
 
         # drop-out layer
         self.do = nn.Dropout(dropout_p)
@@ -50,12 +51,14 @@ class SimpleRNN(nn.Module):
         h_0 = self._init_state(batch_size=x.size(0))
         x, _ = self.recurrent(x, h_0)
         x = x[:, -1, :]
+        x = self.do(x)
         x = F.relu(self.fc_1(x))
         x = F.relu(self.fc_2(x))
+        x = F.relu(self.fc_3(x))
 
-        z = F.relu(self.fc_3(z.type(torch.float)))
-        z = F.relu(self.fc_4(z))
+        z = F.relu(self.fc_4(z.type(torch.float)))
         z = F.relu(self.fc_5(z))
+        z = F.relu(self.fc_6(z))
 
         out = x + z
         return out
@@ -84,12 +87,13 @@ class SimpleLSTM(nn.Module):
         )
 
         # fully connected layers for texts
-        self.fc_1 = nn.Linear(hidden_dim, 16)
-        self.fc_2 = nn.Linear(16, num_classes)
+        self.fc_1 = nn.Linear(hidden_dim, 32)
+        self.fc_2 = nn.Linear(32, 16)
+        self.fc_3 = nn.Linear(16, num_classes)
 
-        self.fc_3 = nn.Linear(kwargs["num_publisher"], 32)
-        self.fc_4 = nn.Linear(32, 16)
-        self.fc_5 = nn.Linear(16, num_classes)
+        self.fc_4 = nn.Linear(kwargs["num_publisher"], 32)
+        self.fc_5 = nn.Linear(32, 16)
+        self.fc_6 = nn.Linear(16, num_classes)
 
         # drop-out layer
         self.do = nn.Dropout(dropout_p)
@@ -107,12 +111,14 @@ class SimpleLSTM(nn.Module):
         h_0, c_0 = self._init_state(batch_size=x.size(0))
         x, _ = self.recurrent(x, (h_0, c_0))
         x = x[:, -1, :]
+        x = self.do(x)
         x = F.relu(self.fc_1(x))
         x = F.relu(self.fc_2(x))
+        x = F.relu(self.fc_3(x))
 
-        z = F.relu(self.fc_3(z.type(torch.float)))
-        z = F.relu(self.fc_4(z))
+        z = F.relu(self.fc_4(z.type(torch.float)))
         z = F.relu(self.fc_5(z))
+        z = F.relu(self.fc_6(z))
 
         out = x + z
         return out
@@ -142,12 +148,13 @@ class SimpleGRU(nn.Module):
         self.recurrent = nn.GRU(embed_dim, hidden_dim, num_layers=self.num_layers, batch_first=True)
 
         # fully connected layers for texts
-        self.fc_1 = nn.Linear(hidden_dim, 16)
-        self.fc_2 = nn.Linear(16, num_classes)
+        self.fc_1 = nn.Linear(hidden_dim, 32)
+        self.fc_2 = nn.Linear(32, 16)
+        self.fc_3 = nn.Linear(16, num_classes)
 
-        self.fc_3 = nn.Linear(kwargs["num_publisher"], 32)
-        self.fc_4 = nn.Linear(32, 16)
-        self.fc_5 = nn.Linear(16, num_classes)
+        self.fc_4 = nn.Linear(kwargs["num_publisher"], 32)
+        self.fc_5 = nn.Linear(32, 16)
+        self.fc_6 = nn.Linear(16, num_classes)
 
         # drop-out layer
         self.do = nn.Dropout(dropout_p)
@@ -165,12 +172,14 @@ class SimpleGRU(nn.Module):
         h_0 = self._init_state(batch_size=x.size(0))
         x, _ = self.recurrent(x, h_0)
         x = x[:, -1, :]
+        x = self.do(x)
         x = F.relu(self.fc_1(x))
         x = F.relu(self.fc_2(x))
+        x = F.relu(self.fc_3(x))
 
-        z = F.relu(self.fc_3(z.type(torch.float)))
-        z = F.relu(self.fc_4(z))
+        z = F.relu(self.fc_4(z.type(torch.float)))
         z = F.relu(self.fc_5(z))
+        z = F.relu(self.fc_6(z))
 
         out = x + z
         return out
