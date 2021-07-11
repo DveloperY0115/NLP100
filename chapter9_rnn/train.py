@@ -21,7 +21,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument(
     "--model_type",
     type=str,
-    default="gru",
+    default="lstm",
     help="Type of model to use. Can be one of 'rnn', 'lstm', 'gru'.",
 )
 parser.add_argument("--num_layer", type=int, default=3, help="Number of recurrent layers")
@@ -61,13 +61,12 @@ def main():
     )
 
     # build vocabulary
-    fields.TITLE.build_vocab(train_data, min_freq=3, max_size=20000)
-    fields.TITLE.build_vocab(valid_data, min_freq=3, max_size=20000)
-    fields.TITLE.build_vocab(test_data, min_freq=3, max_size=20000)
+    fields.TITLE.build_vocab(train_data, valid_data, test_data, min_freq=6, max_size=20000)
     fields.PUBLISHER.build_vocab(train_data, valid_data, test_data)
     fields.CATEGORY.build_vocab(train_data, valid_data, test_data)
 
     vocab_size = len(fields.TITLE.vocab)
+    print("[!] Vocabulary size: {}".format(vocab_size))
 
     # create data loader for each dataset
     train_loader = BucketIterator(dataset=train_data, batch_size=args.batch_size, device=device)
