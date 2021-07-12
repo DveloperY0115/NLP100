@@ -21,7 +21,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument(
     "--model_type",
     type=str,
-    default="lstm",
+    default="rnn",
     help="Type of model to use. Can be one of 'rnn', 'lstm', 'gru'.",
 )
 parser.add_argument("--num_layer", type=int, default=3, help="Number of recurrent layers")

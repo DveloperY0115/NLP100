@@ -54,11 +54,11 @@ class SimpleRNN(nn.Module):
         x = self.do(x)
         x = F.relu(self.fc_1(x))
         x = F.relu(self.fc_2(x))
-        x = F.relu(self.fc_3(x))
+        x = self.fc_3(x)
 
         z = F.relu(self.fc_4(z.type(torch.float)))
         z = F.relu(self.fc_5(z))
-        z = F.relu(self.fc_6(z))
+        z = self.fc_6(z)
 
         out = x + z
         return out
@@ -114,11 +114,11 @@ class SimpleLSTM(nn.Module):
         x = self.do(x)
         x = F.relu(self.fc_1(x))
         x = F.relu(self.fc_2(x))
-        x = F.relu(self.fc_3(x))
+        x = self.fc_3(x)
 
         z = F.relu(self.fc_4(z.type(torch.float)))
         z = F.relu(self.fc_5(z))
-        z = F.relu(self.fc_6(z))
+        z = self.fc_6(z)
 
         out = x + z
         return out
@@ -175,11 +175,11 @@ class SimpleGRU(nn.Module):
         x = self.do(x)
         x = F.relu(self.fc_1(x))
         x = F.relu(self.fc_2(x))
-        x = F.relu(self.fc_3(x))
+        x = self.fc_3(x)
 
         z = F.relu(self.fc_4(z.type(torch.float)))
         z = F.relu(self.fc_5(z))
-        z = F.relu(self.fc_6(z))
+        z = self.fc_6(z)
 
         out = x + z
         return out
