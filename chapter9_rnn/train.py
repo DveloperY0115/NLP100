@@ -10,31 +10,37 @@ from tqdm import tqdm
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import torch.nn.functional as F
-from torchtext.legacy.data import TabularDataset
-from torchtext.legacy.data import BucketIterator
-import utils.fields as fields
+import torch.utils.data as data
+from torch.utils.tensorboard import SummaryWriter
 
 from models import SimpleRNN, SimpleLSTM, SimpleGRU
+from dataset import AggregatorNewsDataset
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
     "--model_type",
     type=str,
-    default="rnn",
+    default="lstm",
     help="Type of model to use. Can be one of 'rnn', 'lstm', 'gru'.",
 )
 parser.add_argument("--num_layer", type=int, default=3, help="Number of recurrent layers")
-parser.add_argument("--hidden_dim", type=int, default=64, help="Dimensionality of hidden & cell state")
-parser.add_argument("--embed_dim", type=int, default=128, help="Dimensionality of word embedding vector")
-parser.add_argument("--num_epoch", type=int, default=1000, help="Number of epochs")
-parser.add_argument("--batch_size", type=int, default=1000, help="Size of a batch")
+parser.add_argument(
+    "--hidden_dim", type=int, default=128, help="Dimensionality of hidden & cell state"
+)
+parser.add_argument(
+    "--embed_dim", type=int, default=256, help="Dimensionality of word embedding vector"
+)
+parser.add_argument("--num_epoch", type=int, default=300, help="Number of epochs")
+parser.add_argument("--batch_size", type=int, default=64, help="Size of a batch")
+parser.add_argument("--num_workers", type=int, default=4, help="Number of workers for data loading")
 parser.add_argument("--lr", type=float, default=0.001, help="Learning rate")
 parser.add_argument("--beta1", type=float, default=0.9, help="Beta 1 of Adam optimizer")
 parser.add_argument("--beta2", type=float, default=0.999, help="Beta 2 of Adam optimizer")
-parser.add_argument("--step_size", type=int, default=100, help="Step size of StepLR")
-parser.add_argument("--gamma", type=float, default=0.99, help="Gamma of StepLR")
-parser.add_argument("--save_interval", type=int, default=100, help="Interval between each checkpoint")
+parser.add_argument("--step_size", type=int, default=10000, help="Step size of StepLR")
+parser.add_argument("--gamma", type=float, default=0.8, help="Gamma of StepLR")
+parser.add_argument(
+    "--save_interval", type=int, default=100, help="Interval between each checkpoint"
+)
 args = parser.parse_args()
 
 
@@ -44,43 +50,50 @@ def main():
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     print("[!] Using {}".format(device))
 
-    # load train, valid, test data
-    train_data, valid_data, test_data = TabularDataset.splits(
-        path="./data/",
-        train="train.csv",
-        validation="valid.csv",
-        test="test.csv",
-        format="csv",
-        fields=[
-            ("title", fields.TITLE),
-            ("publisher", fields.PUBLISHER),
-            ("category", fields.CATEGORY),
-        ],
-        skip_header=True,
-        csv_reader_params={"delimiter": ","},
-    )
+    dataset = AggregatorNewsDataset("data/train.csv")
+    train_data, test_data = data.random_split(dataset, [len(dataset) - 1000, 1000])
 
-    # build vocabulary
-    fields.TITLE.build_vocab(train_data, valid_data, test_data, min_freq=6, max_size=20000)
-    fields.PUBLISHER.build_vocab(train_data, valid_data, test_data)
-    fields.CATEGORY.build_vocab(train_data, valid_data, test_data)
+    print("[!] Cardinality of training data: {}".format(len(train_data)))
+    print("[!] Cardinality of test data: {}".format(len(test_data)))
 
-    vocab_size = len(fields.TITLE.vocab)
-    print("[!] Vocabulary size: {}".format(vocab_size))
+    # setup summary writer
+    writer = SummaryWriter(os.path.join("out", args.model_type, "log"))
 
     # create data loader for each dataset
-    train_loader = BucketIterator(dataset=train_data, batch_size=args.batch_size, device=device)
-    valid_loader = BucketIterator(dataset=valid_data, batch_size=args.batch_size, device=device)
-    test_loader = BucketIterator(dataset=test_data, batch_size=args.batch_size, device=device)
+    train_loader = data.DataLoader(dataset=train_data, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
+    test_loader = data.DataLoader(dataset=test_data, batch_size=args.batch_size, shuffle=True)
 
     # create model
-    # TODO: Investigate dataset and eliminate samples with missing values
     if args.model_type == "rnn":
-        model = SimpleRNN(args.num_layer, args.hidden_dim, vocab_size, args.embed_dim, 5, 0.7, num_publisher=6).to(device)
+        model = SimpleRNN(
+            args.num_layer,
+            args.hidden_dim,
+            dataset.vocab_size,
+            args.embed_dim,
+            5,
+            0.7,
+            num_publisher=5,
+        ).to(device)
     elif args.model_type == "lstm":
-        model = SimpleLSTM(args.num_layer, args.hidden_dim, vocab_size, args.embed_dim, 5, 0.7, num_publisher=6).to(device)
+        model = SimpleLSTM(
+            args.num_layer,
+            args.hidden_dim,
+            dataset.vocab_size,
+            args.embed_dim,
+            5,
+            0.7,
+            num_publisher=5,
+        ).to(device)
     elif args.model_type == "gru":
-        model = SimpleGRU(args.num_layer, args.hidden_dim, vocab_size, args.embed_dim, 5, 0.7, num_publisher=6).to(device)
+        model = SimpleGRU(
+            args.num_layer,
+            args.hidden_dim,
+            dataset.vocab_size,
+            args.embed_dim,
+            5,
+            0.7,
+            num_publisher=5,
+        ).to(device)
     else:
         print("[!] Invalid configuration. Please choose one of 'rnn', 'lstm', 'gru'.")
         return -1
@@ -91,17 +104,21 @@ def main():
 
     # iterate over epochs
     for epoch in tqdm(range(args.num_epoch)):
-        loss = train_one_epoch(model, optimizer, scheduler, train_loader, epoch)
+        loss = train_one_epoch(model, optimizer, scheduler, train_loader, epoch, device)
 
         with torch.no_grad():
             test_loss, test_accuracy = test_one_epoch(model, device, test_loader, epoch)
 
+        writer.add_scalar("Loss/train", loss, epoch)
+        writer.add_scalar("Loss/test", test_loss, epoch)
+        writer.add_scalar("Accuracy/test", test_accuracy, epoch)
+
         # save model & checkpoint
-        if (epoch+1) % args.save_interval == 0:
+        if (epoch + 1) % args.save_interval == 0:
             save_checkpoint(epoch, loss, model, optimizer, scheduler)
 
 
-def train_one_epoch(model, optimizer, scheduler, train_loader, epoch):
+def train_one_epoch(model, optimizer, scheduler, train_loader, epoch, device):
     train_iter = iter(train_loader)
 
     train_loss = 0
@@ -114,13 +131,14 @@ def train_one_epoch(model, optimizer, scheduler, train_loader, epoch):
         except StopIteration:
             break
 
-        title = train_batch.title
-        publisher = train_batch.publisher
-        category = train_batch.category
+        title, publisher, category = train_batch
 
-        # one-hot encoding for categorical data
-        publisher = F.one_hot(publisher, 6)
-        category = F.one_hot(category, 5)
+        title = title.to(device)
+        publisher = publisher.to(device)
+        category = category.to(device)
+
+        # initialize gradient
+        optimizer.zero_grad()
 
         # forward prop
         pred = model(title, publisher)
@@ -153,13 +171,12 @@ def test_one_epoch(model, device, test_loader, epoch):
     test_iter = iter(test_loader)
     test_batch = next(test_iter)
 
-    title_test = test_batch.title.to(device)
-    publisher_test = test_batch.publisher.to(device)
-    category_test = test_batch.category.to(device)
+    title_test, publisher_test, category_test = test_batch
 
-    # one-hot encoding for categorical data
-    publisher_test = F.one_hot(publisher_test, 6)
-    category_test = F.one_hot(category_test, 5)
+    title_test = title_test.to(device)
+    publisher_test = publisher_test.to(device)
+    category_test = category_test.to(device)
+
     pred_test = model(title_test, publisher_test)
 
     test_loss = nn.CrossEntropyLoss()(pred_test, torch.argmax(category_test, dim=1))
@@ -188,7 +205,7 @@ def save_checkpoint(epoch, loss, model, optimizer, scheduler):
     if not os.path.exists(save_root):
         os.mkdir(save_root)
 
-    save_path = os.path.join(save_root, "checkpoint-epoch-{}.pt".format(epoch+1))
+    save_path = os.path.join(save_root, "checkpoint-epoch-{}.pt".format(epoch + 1))
 
     torch.save(
         {
